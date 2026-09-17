@@ -1,0 +1,2096 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XAP3D ERP — Gestão Inteligente para Impressão 3D</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN for interactive graphics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              900: '#7c2d12',
+            },
+            dark: {
+              800: '#1e232d',
+              850: '#181c24',
+              900: '#11141a',
+              950: '#0b0d11',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    .dark ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.5);
+      border-radius: 9999px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: rgba(75, 85, 99, 0.6);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-50 dark:bg-dark-950 text-slate-800 dark:text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white transition-colors duration-200">
+  <div id="app" class="flex h-full overflow-hidden">
+    
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs hidden lg:hidden"></div>
+
+    <!-- MAIN SIDEBAR -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-white dark:bg-dark-900 border-r border-slate-200 dark:border-dark-800 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-auto transition-transform duration-300 ease-in-out">
+      <!-- Logo Header -->
+      <div class="h-16 flex items-center justify-between px-5 border-b border-slate-200 dark:border-dark-800 bg-white dark:bg-dark-900">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20 font-black text-lg tracking-wider">
+            3D
+          </div>
+          <div>
+            <h1 class="text-lg font-black tracking-tight flex items-center gap-1 text-slate-900 dark:text-white">
+              XAP<span class="text-brand-500">3D</span>
+              <span class="text-[10px] uppercase font-bold bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800/50 px-1.5 py-0.5 rounded">ERP</span>
+            </h1>
+            <p class="text-[10.5px] text-slate-400 font-medium tracking-tight">Gestão para Impressão 3D</p>
+          </div>
+        </div>
+        <button onclick="toggleMobileSidebar()" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Quick Fleet Live Status -->
+      <div class="px-4 py-3 bg-slate-50/80 dark:bg-dark-850/60 border-b border-slate-200 dark:border-dark-800">
+        <div class="flex items-center justify-between mb-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="sidebar-fleet-title">FROTA FDM</span>
+          </span>
+          <span id="sidebar-printer-summary" class="text-brand-600 dark:text-brand-400 font-bold">2 ativas</span>
+        </div>
+        <div class="flex items-center gap-1.5 pt-1 overflow-x-auto" id="sidebar-printer-dots"></div>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav class="flex-1 px-3 py-3 space-y-1 overflow-y-auto text-sm font-medium">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40 font-semibold transition-all">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="truncate">Dashboard</span>
+        </button>
+
+        <button onclick="switchTab('pedidos')" id="nav-pedidos" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <div class="flex items-center gap-3 truncate">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span class="truncate">Pedidos</span>
+          </div>
+          <span id="nav-badge-orders" class="text-xs bg-brand-500 text-white font-bold px-2 py-0.5 rounded-full">4</span>
+        </button>
+
+        <button onclick="switchTab('producao')" id="nav-producao" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <div class="flex items-center gap-3 truncate">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+            <span class="truncate">Produção & Fila</span>
+          </div>
+          <span class="text-xs bg-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold px-2 py-0.5 rounded-md">Smart</span>
+        </button>
+
+        <button onclick="switchTab('impressoras')" id="nav-impressoras" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          <span class="truncate">Impressoras 3D</span>
+        </button>
+
+        <button onclick="switchTab('produtos')" id="nav-produtos" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          <span class="truncate">Produtos & Fichas</span>
+        </button>
+
+        <button onclick="switchTab('estoque')" id="nav-estoque" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <div class="flex items-center gap-3 truncate">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7c0-2 1-3 3-3h10c2 0 3 1 3 3M4 7h16m-5 4v6m-6-6v6"/></svg>
+            <span class="truncate">Estoque & Filamento</span>
+          </div>
+          <span id="nav-badge-stock" class="text-xs bg-rose-500 text-white font-bold px-1.5 py-0.5 rounded-full">2</span>
+        </button>
+
+        <button onclick="switchTab('precificacao')" id="nav-precificacao" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          <span class="truncate">Calculadora & Preço</span>
+        </button>
+
+        <button onclick="switchTab('marketplaces')" id="nav-marketplaces" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+          <span class="truncate">Marketplaces & Taxas</span>
+        </button>
+
+        <button onclick="switchTab('clientes')" id="nav-clientes" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <span class="truncate">Clientes & Custom 3D</span>
+        </button>
+
+        <button onclick="switchTab('financeiro')" id="nav-financeiro" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="truncate">Financeiro & DRE</span>
+        </button>
+
+        <button onclick="switchTab('inteligencia')" id="nav-inteligencia" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <div class="flex items-center gap-3 truncate">
+            <svg class="w-5 h-5 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span class="truncate font-medium">Inteligência XAP3D</span>
+          </div>
+          <span class="text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-bold px-1.5 py-0.5 rounded">AI/BI</span>
+        </button>
+
+        <button onclick="switchTab('configuracoes')" id="nav-configuracoes" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800 transition-all">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span class="truncate">Configurações & Backup</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="p-3 border-t border-slate-200 dark:border-dark-800 bg-slate-50 dark:bg-dark-900 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-slate-200 dark:bg-dark-800 flex items-center justify-center font-bold text-xs text-brand-600 dark:text-brand-400">
+            XP
+          </div>
+          <div class="truncate text-xs">
+            <p class="font-semibold text-slate-800 dark:text-slate-200 truncate">Operação XAP3D</p>
+            <p class="text-slate-400 text-[10px]">Admin Chapecó</p>
+          </div>
+        </div>
+        <button onclick="toggleDarkMode()" title="Alternar Modo Escuro" class="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-dark-800 transition">
+          <svg id="theme-icon-sun" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg id="theme-icon-moon" class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN WORKSPACE -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <!-- Top Header -->
+      <header class="h-16 flex items-center justify-between px-4 sm:px-6 bg-white dark:bg-dark-900 border-b border-slate-200 dark:border-dark-800 z-10 flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-dark-800">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <div>
+            <span id="page-breadcrumb" class="text-xs text-brand-600 dark:text-brand-400 font-semibold tracking-wide uppercase">XAP3D ERP</span>
+            <h2 id="page-title" class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight leading-none">Dashboard Operacional</h2>
+          </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Shopee Store Direct Link -->
+          <a href="https://shopee.com.br/xap3d" target="_blank" rel="noopener noreferrer" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/40 hover:bg-orange-500/20 transition">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.5 7.5h-3.1C16.1 4.7 13.8 2.5 11 2.5S5.9 4.7 5.6 7.5H2.5L1 21.5h20l-1.5-14zM11 4.5c1.7 0 3.1 1.3 3.4 3H7.6c.3-1.7 1.7-3 3.4-3zm-6.2 15L6 9.5h10l1.2 10H4.8z"/></svg>
+            <span>Shopee xap3d</span>
+          </a>
+
+          <!-- Quick Action: + Novo Pedido -->
+          <button onclick="openModal('modal-novo-pedido')" class="inline-flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 active:scale-95 rounded-xl shadow-md shadow-brand-500/25 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span class="hidden xs:inline">+ Novo Pedido</span>
+            <span class="xs:hidden">+ Pedido</span>
+          </button>
+
+          <!-- Quick Action: + Produção / Fila -->
+          <button onclick="openModal('modal-nova-producao')" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-dark-800 hover:bg-slate-200 dark:hover:bg-dark-850 rounded-xl transition">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+            <span>+ Produzir</span>
+          </button>
+
+          <!-- Notifications Alert Bell -->
+          <div class="relative">
+            <button onclick="toggleNotificationDropdown()" class="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-dark-800 relative transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <span id="header-notif-dot" class="w-2.5 h-2.5 rounded-full bg-rose-500 absolute top-1.5 right-1.5 ring-2 ring-white dark:ring-dark-900"></span>
+            </button>
+            <div id="dropdown-notifications" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 rounded-2xl shadow-xl z-50 p-4">
+              <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-dark-800">
+                <span class="text-sm font-bold text-slate-900 dark:text-white">Alertas Operacionais (3)</span>
+                <button onclick="clearNotifications()" class="text-xs text-brand-600 dark:text-brand-400 hover:underline">Marcar como lidos</button>
+              </div>
+              <div class="divide-y divide-slate-100 dark:divide-dark-800 max-h-72 overflow-y-auto text-xs py-1">
+                <div class="py-2.5 flex items-start gap-2.5">
+                  <span class="w-2 h-2 mt-1 rounded-full bg-rose-500 flex-shrink-0"></span>
+                  <div>
+                    <p class="font-semibold text-slate-800 dark:text-slate-200">Estoque Crítico: PLA Vermelho</p>
+                    <p class="text-slate-500 text-[11px]">Restam apenas 180g. Cobertura para 1,5 dias de impressão.</p>
+                  </div>
+                </div>
+                <div class="py-2.5 flex items-start gap-2.5">
+                  <span class="w-2 h-2 mt-1 rounded-full bg-amber-500 flex-shrink-0"></span>
+                  <div>
+                    <p class="font-semibold text-slate-800 dark:text-slate-200">Manutenção Preventiva</p>
+                    <p class="text-slate-500 text-[11px]">Creality K1 atingiu 980h. Limpeza de eixos e lubrificação necessária.</p>
+                  </div>
+                </div>
+                <div class="py-2.5 flex items-start gap-2.5">
+                  <span class="w-2 h-2 mt-1 rounded-full bg-blue-500 flex-shrink-0"></span>
+                  <div>
+                    <p class="font-semibold text-slate-800 dark:text-slate-200">2 Pedidos Próximos do Prazo Shopee</p>
+                    <p class="text-slate-500 text-[11px]">Prazo limite de envio expira hoje às 17:00.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- SCROLLABLE TAB CONTENTS -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        
+        <!-- TAB: DASHBOARD -->
+        <section id="tab-dashboard" class="tab-content active space-y-6">
+          <!-- Attention Banner -->
+          <div class="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-brand-500/10 to-rose-500/10 border border-amber-300/40 dark:border-amber-700/30">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-start gap-3">
+                <div class="p-2 rounded-xl bg-amber-500 text-white font-bold flex-shrink-0 shadow-sm">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <div>
+                  <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    CENTRAL DE ATENÇÃO OPERACIONAL
+                    <span class="text-[10px] bg-rose-500 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Ação Necessária</span>
+                  </h3>
+                  <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                    • <strong>PLA Vermelho (180g)</strong> abaixo do estoque crítico | 
+                    • <strong>2 pedidos</strong> Shopee aguardando acabamento para envio hoje | 
+                    • <strong>Miniatura Gandalf</strong> sem estoque pronto (3 pedidos na fila)
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <button onclick="switchTab('producao')" class="px-3 py-1.5 text-xs font-semibold bg-white dark:bg-dark-850 hover:bg-slate-50 dark:hover:bg-dark-800 text-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-dark-700 shadow-sm transition">
+                  Ver Fila FDM
+                </button>
+                <button onclick="switchTab('estoque')" class="px-3 py-1.5 text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white rounded-xl shadow-sm transition">
+                  Repor Filamento
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI Metrics Grid -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5">
+            <div class="bg-white dark:bg-dark-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
+                <span>Vendas Hoje</span>
+                <span class="text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded font-bold">+18.4%</span>
+              </div>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span id="kpi-vendas-hoje" class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">R$ 428,70</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1"><strong id="kpi-pedidos-hoje">17</strong> pedidos concluídos</p>
+            </div>
+
+            <div class="bg-white dark:bg-dark-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
+                <span>Faturamento Mês</span>
+                <span class="text-brand-600 dark:text-brand-400 font-semibold text-[11px]">Setembro</span>
+              </div>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span id="kpi-vendas-mes" class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">R$ 9.840,00</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">218 pedidos faturados</p>
+            </div>
+
+            <div class="bg-white dark:bg-dark-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
+                <span>Lucro Líquido Real</span>
+                <span class="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">43,8% mg</span>
+              </div>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span id="kpi-lucro-liquido" class="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">R$ 4.310,92</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Livre de filamento, energia & taxas</p>
+            </div>
+
+            <div class="bg-white dark:bg-dark-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-medium">
+                <span>Custos + Taxas Mês</span>
+                <span class="text-rose-500 text-[11px] font-semibold">56,2% total</span>
+              </div>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span id="kpi-custos-total" class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">R$ 5.529,08</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Shopee + ML + Matéria-Prima</p>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h4 class="font-bold text-slate-900 dark:text-white text-base">Faturamento x Lucro Líquido Real</h4>
+                  <p class="text-xs text-slate-400">Comparativo dos últimos 7 dias na XAP3D</p>
+                </div>
+              </div>
+              <div class="h-64 relative w-full">
+                <canvas id="chart-dashboard-finance"></canvas>
+              </div>
+            </div>
+
+            <div class="bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm flex flex-col justify-between">
+              <div>
+                <h4 class="font-bold text-slate-900 dark:text-white text-base">Vendas por Canal</h4>
+                <p class="text-xs text-slate-400 mb-4">Volume & Lucro por Marketplace</p>
+                <div class="h-44 relative flex items-center justify-center">
+                  <canvas id="chart-dashboard-channels"></canvas>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-100 dark:border-dark-800 space-y-1.5 text-xs">
+                <div class="flex justify-between"><span>Shopee (xap3d):</span><span class="font-bold">65% (R$ 6.396)</span></div>
+                <div class="flex justify-between"><span>Mercado Livre:</span><span class="font-bold">25% (R$ 2.460)</span></div>
+                <div class="flex justify-between text-emerald-600 font-bold"><span>Venda Direta:</span><span>10% (R$ 984)</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Fleet Cards -->
+          <div class="bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-dark-800">
+              <h4 class="font-bold text-slate-900 dark:text-white text-base">Monitoramento em Tempo Real — Frota FDM</h4>
+              <button onclick="switchTab('impressoras')" class="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">Ver Máquinas →</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4" id="fleet-live-cards"></div>
+          </div>
+        </section>
+
+        <!-- TAB: PEDIDOS -->
+        <section id="tab-pedidos" class="tab-content space-y-6">
+          <div class="bg-white dark:bg-dark-900 p-4 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+            <div class="flex flex-1 items-center gap-2 w-full md:w-auto">
+              <div class="relative flex-1">
+                <input type="text" id="order-search" oninput="renderOrdersTable()" placeholder="Buscar pedido por número, cliente ou SKU..." class="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-dark-800 border border-slate-200 dark:border-dark-700 rounded-xl focus:outline-none">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              </div>
+              <select id="order-filter-status" onchange="renderOrdersTable()" class="text-xs sm:text-sm bg-slate-50 dark:bg-dark-800 border border-slate-200 dark:border-dark-700 rounded-xl px-3 py-2">
+                <option value="ALL">Todos os Status</option>
+                <option value="NOVO">Novo</option>
+                <option value="EM_PRODUCAO">Em Produção</option>
+                <option value="ACABAMENTO">Acabamento</option>
+                <option value="EMBALAGEM">Embalagem</option>
+                <option value="ENVIADO">Enviado</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="exportTableToCSV('orders')" class="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-dark-800 hover:bg-slate-200 rounded-xl transition">Exportar CSV</button>
+              <button onclick="openModal('modal-novo-pedido')" class="px-4 py-2 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl shadow-md transition">+ Novo Pedido</button>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-dark-900 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs sm:text-sm">
+                <thead class="bg-slate-50 dark:bg-dark-850 text-slate-500 uppercase text-[11px] border-b border-slate-200 dark:border-dark-800">
+                  <tr>
+                    <th class="py-3 px-4">Pedido / Canal</th>
+                    <th class="py-3 px-4">Cliente & Cidade</th>
+                    <th class="py-3 px-4">Itens & Tamanhos</th>
+                    <th class="py-3 px-4">Total / Taxas</th>
+                    <th class="py-3 px-4">Lucro Real</th>
+                    <th class="py-3 px-4">Prazo</th>
+                    <th class="py-3 px-4">Status</th>
+                    <th class="py-3 px-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="orders-table-body" class="divide-y divide-slate-100 dark:divide-dark-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: PRODUÇÃO & FILA -->
+        <section id="tab-producao" class="tab-content space-y-6">
+          <div class="bg-white dark:bg-dark-900 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 dark:border-dark-800 flex items-center justify-between">
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">Fila de Impressão FDM Priorizada</h3>
+                <p class="text-xs text-slate-400">Classificação inteligente por prazo, tamanho e cor de filamento</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="openModal('modal-registrar-falha')" class="px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 rounded-xl hover:bg-rose-100 transition">⚠️ Registrar Falha</button>
+                <button onclick="openModal('modal-nova-producao')" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition">+ Iniciar Ordem FDM</button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs sm:text-sm">
+                <thead class="bg-slate-50 dark:bg-dark-850 text-slate-500 uppercase text-[11px] border-b border-slate-200 dark:border-dark-800">
+                  <tr>
+                    <th class="py-3 px-4">Ordem / Produto</th>
+                    <th class="py-3 px-4">Filamento & Peso</th>
+                    <th class="py-3 px-4">Tempo Est.</th>
+                    <th class="py-3 px-4">Impressora Alocada</th>
+                    <th class="py-3 px-4">Prioridade</th>
+                    <th class="py-3 px-4">Status</th>
+                    <th class="py-3 px-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="production-queue-body" class="divide-y divide-slate-100 dark:divide-dark-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: IMPRESSORAS -->
+        <section id="tab-impressoras" class="tab-content space-y-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-white">Gerenciamento de Impressoras FDM</h3>
+              <p class="text-xs text-slate-400">Controle de horas trabalhadas, depreciação e planos de manutenção</p>
+            </div>
+            <button onclick="openModal('modal-nova-impressora')" class="px-3.5 py-2 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition">+ Cadastrar Impressora</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="printers-detailed-grid"></div>
+        </section>
+
+        <!-- TAB: PRODUTOS & FICHAS -->
+        <section id="tab-produtos" class="tab-content space-y-6">
+          <div class="bg-white dark:bg-dark-900 p-4 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+            <div class="flex flex-1 items-center gap-2 w-full md:w-auto">
+              <input type="text" id="product-search" oninput="renderProductsCatalog()" placeholder="Pesquisar produto por nome, SKU, categoria..." class="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-dark-800 border rounded-xl focus:outline-none">
+              <select id="product-filter-cat" onchange="renderProductsCatalog()" class="text-xs sm:text-sm bg-slate-50 dark:bg-dark-800 border rounded-xl px-3 py-2">
+                <option value="ALL">Todas Categorias</option>
+                <option value="Organização">Organização</option>
+                <option value="Suportes">Suportes Tech</option>
+                <option value="Miniaturas">Miniaturas</option>
+                <option value="Decoração">Decoração</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="exportTableToCSV('products')" class="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-dark-800 rounded-xl">Exportar CSV</button>
+              <button onclick="openModal('modal-novo-produto')" class="px-4 py-2 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition">+ Novo Produto</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5" id="products-catalog-grid"></div>
+        </section>
+
+        <!-- TAB: ESTOQUE (FILAMENTOS, ACABADOS, EMBALAGENS) -->
+        <section id="tab-estoque" class="tab-content space-y-6">
+          <!-- Filaments Spools -->
+          <div class="bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-dark-800">
+              <h4 class="font-bold text-slate-900 dark:text-white text-base">🧵 Estoque de Filamentos FDM (Controle em Gramas)</h4>
+              <button onclick="openModal('modal-novo-filamento')" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition">+ Novo Filamento</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4" id="filaments-grid"></div>
+          </div>
+
+          <!-- Finished Goods & Packaging -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Finished Stock -->
+            <div class="bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <h4 class="font-bold text-slate-900 dark:text-white text-sm mb-3">📦 Estoque de Produtos Acabados</h4>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-50 dark:bg-dark-850 text-slate-500 uppercase">
+                    <tr>
+                      <th class="py-2 px-3">Produto</th>
+                      <th class="py-2 px-3 text-center">Disponível</th>
+                      <th class="py-2 px-3 text-center">Mínimo</th>
+                      <th class="py-2 px-3 text-center">Status</th>
+                      <th class="py-2 px-3 text-right">Ajuste / Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody id="finished-stock-body" class="divide-y divide-slate-100 dark:divide-dark-800"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Packaging Supplies -->
+            <div class="bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="font-bold text-slate-900 dark:text-white text-sm">✉️ Insumos de Envio & Embalagem</h4>
+                <button onclick="openModal('modal-nova-embalagem')" class="px-2.5 py-1 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition">+ Novo Insumo</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-50 dark:bg-dark-850 text-slate-500 uppercase">
+                    <tr>
+                      <th class="py-2 px-3">Item</th>
+                      <th class="py-2 px-3 text-center">Estoque</th>
+                      <th class="py-2 px-3 text-right">Custo</th>
+                      <th class="py-2 px-3 text-center">Cobertura</th>
+                      <th class="py-2 px-3 text-center">Status</th>
+                      <th class="py-2 px-3 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="packaging-stock-body" class="divide-y divide-slate-100 dark:divide-dark-800"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: PRECIFICAÇÃO -->
+        <section id="tab-precificacao" class="tab-content space-y-6">
+          <div class="bg-white dark:bg-dark-900 p-6 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Calculadora Avançada de Preço Real & Simulador Multicanal</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="lg:col-span-2 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-semibold mb-1">Peso da Peça (gramas)</label>
+                    <input type="number" id="calc-peso" value="85" oninput="runPricingCalculation()" class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-dark-800 border rounded-xl">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold mb-1">Tempo de Impressão (Horas)</label>
+                    <input type="number" step="0.1" id="calc-tempo" value="3.3" oninput="runPricingCalculation()" class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-dark-800 border rounded-xl">
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold mb-1">Custo Filamento (R$/kg)</label>
+                    <input type="number" id="calc-custo-kg" value="89.90" oninput="runPricingCalculation()" class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-dark-800 border rounded-xl">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold mb-1">Mão de Obra (R$)</label>
+                    <input type="number" id="calc-mao-obra" value="3.50" oninput="runPricingCalculation()" class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-dark-800 border rounded-xl">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold mb-1">Embalagem (R$)</label>
+                    <input type="number" id="calc-embalagem" value="2.80" oninput="runPricingCalculation()" class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-dark-800 border rounded-xl">
+                  </div>
+                </div>
+              </div>
+              <div class="bg-slate-50 dark:bg-dark-850 p-5 rounded-2xl border border-slate-200 dark:border-dark-800">
+                <h4 class="text-xs font-bold uppercase text-slate-500 mb-3">Composição do Custo Real</h4>
+                <div class="space-y-1.5 text-xs">
+                  <div class="flex justify-between"><span>Filamento:</span><span id="breakdown-filamento" class="font-bold">R$ 7,64</span></div>
+                  <div class="flex justify-between"><span>Energia:</span><span id="breakdown-energia" class="font-bold">R$ 0,34</span></div>
+                  <div class="flex justify-between"><span>Depreciação:</span><span id="breakdown-deprec" class="font-bold">R$ 4,95</span></div>
+                  <div class="flex justify-between"><span>Mão de Obra:</span><span id="breakdown-obra" class="font-bold">R$ 3,50</span></div>
+                  <div class="flex justify-between"><span>Embalagem:</span><span id="breakdown-embalagem" class="font-bold">R$ 2,80</span></div>
+                  <div class="flex justify-between pt-2 border-t font-extrabold text-sm text-brand-500">
+                    <span>TOTAL:</span><span id="calc-custo-total">R$ 20,19</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: MARKETPLACES -->
+        <section id="tab-marketplaces" class="tab-content space-y-6">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Canais & Taxas Configuráveis</h3>
+            <button onclick="openModal('modal-novo-canal')" class="px-3.5 py-2 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition">+ Novo Canal</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5" id="marketplaces-grid"></div>
+        </section>
+
+        <!-- TAB: CLIENTES -->
+        <section id="tab-clientes" class="tab-content space-y-6">
+          <div class="bg-white dark:bg-dark-900 p-5 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="font-bold text-slate-900 dark:text-white text-base">Clientes Cadastrados</h4>
+              <button onclick="openModal('modal-novo-cliente')" class="px-3 py-1.5 text-xs font-semibold text-brand-600 bg-brand-50 rounded-xl transition">+ Novo Cliente</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs sm:text-sm">
+                <thead class="bg-slate-50 dark:bg-dark-850 text-slate-500 uppercase text-[11px]">
+                  <tr><th class="py-2.5 px-3">Cliente</th><th class="py-2.5 px-3">Cidade</th><th class="py-2.5 px-3">Canal</th><th class="py-2.5 px-3">Total</th></tr>
+                </thead>
+                <tbody id="clients-table-body" class="divide-y divide-slate-100 dark:divide-dark-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: FINANCEIRO -->
+        <section id="tab-financeiro" class="tab-content space-y-6">
+          <div class="bg-white dark:bg-dark-900 p-6 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm space-y-3">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">DRE Simplificado FDM</h3>
+            <div class="flex justify-between font-bold p-3 rounded-xl bg-slate-50 dark:bg-dark-850">
+              <span>(+) RECEITA BRUTA</span><span>R$ 9.840,00</span>
+            </div>
+            <div class="flex justify-between text-rose-500 text-xs px-3"><span>(-) Taxas Marketplaces</span><span>- R$ 1.982,80</span></div>
+            <div class="flex justify-between text-rose-500 text-xs px-3"><span>(-) Consumo de Filamentos</span><span>- R$ 1.840,50</span></div>
+            <div class="flex justify-between text-rose-500 text-xs px-3"><span>(-) Energia & Depreciação</span><span>- R$ 596,20</span></div>
+            <div class="flex justify-between font-black text-emerald-600 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-base">
+              <span>(=) LUCRO LÍQUIDO REAL</span><span>R$ 4.310,92 (43,8%)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: INTELIGÊNCIA -->
+        <section id="tab-inteligencia" class="tab-content space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="bg-white dark:bg-dark-900 p-4 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <span class="text-[10px] font-bold text-amber-500 uppercase">Maior Lucro</span>
+              <h4 class="text-sm font-bold mt-1">Organizador de Pilhas M</h4>
+              <p class="text-xs text-slate-400 mt-1">R$ 1.840 acumulado | Margem 52%</p>
+            </div>
+            <div class="bg-white dark:bg-dark-900 p-4 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <span class="text-[10px] font-bold text-emerald-500 uppercase">Melhor Margem %</span>
+              <h4 class="text-sm font-bold mt-1">Vaso Geométrico</h4>
+              <p class="text-xs text-slate-400 mt-1">61,4% de margem líquida</p>
+            </div>
+            <div class="bg-white dark:bg-dark-900 p-4 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <span class="text-[10px] font-bold text-rose-500 uppercase">Atenção ao Scrap</span>
+              <h4 class="text-sm font-bold mt-1">Miniatura Gandalf</h4>
+              <p class="text-xs text-slate-400 mt-1">Falha de suporte em 4,2% das peças</p>
+            </div>
+            <div class="bg-white dark:bg-dark-900 p-4 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm">
+              <span class="text-[10px] font-bold text-indigo-500 uppercase">Canal Principal</span>
+              <h4 class="text-sm font-bold mt-1">Shopee xap3d</h4>
+              <p class="text-xs text-slate-400 mt-1">65% do volume bruto faturado</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: CONFIGURAÇÕES -->
+        <section id="tab-configuracoes" class="tab-content space-y-6">
+          <div class="bg-white dark:bg-dark-900 p-6 rounded-2xl border border-slate-200 dark:border-dark-800 shadow-sm space-y-6">
+            <div>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-white">Configurações Gerais & Backup</h3>
+              <p class="text-xs text-slate-400">Segurança de dados, persistência local e gestão de dados cadastrados</p>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-dark-850 border border-slate-200 dark:border-dark-800 flex flex-wrap gap-2">
+              <button onclick="exportFullBackup()" class="px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-dark-800 border shadow-xs hover:bg-slate-50 transition">
+                Exportar Backup JSON
+              </button>
+              <label class="px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-dark-800 border shadow-xs hover:bg-slate-50 transition cursor-pointer">
+                Restaurar Backup JSON
+                <input type="file" accept=".json" onchange="importFullBackup(event)" class="hidden">
+              </label>
+              <button onclick="openWipeDataModal()" class="px-3 py-2 text-xs font-bold rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 transition">
+                🗑️ Apagar Dados Cadastrados
+              </button>
+              <button onclick="openFactoryResetModal()" class="px-3 py-2 text-xs font-semibold rounded-xl bg-slate-200 dark:bg-dark-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 transition">
+                Restaurar Padrões de Fábrica
+              </button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMAR EXCLUSÃO -->
+  <div id="modal-confirm-delete" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-4">
+      <div class="flex items-center gap-3 text-rose-500">
+        <div class="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 flex items-center justify-center text-xl font-black">🗑️</div>
+        <div>
+          <h3 id="confirm-delete-title" class="font-bold text-base text-slate-900 dark:text-white">Confirmar Exclusão</h3>
+          <p id="confirm-delete-subtitle" class="text-xs text-slate-400">Esta ação não pode ser desfeita</p>
+        </div>
+      </div>
+      <div id="confirm-delete-description" class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-dark-850 p-3.5 rounded-2xl border border-slate-200/60 dark:border-dark-800"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('modal-confirm-delete')" class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-dark-800 hover:bg-slate-200">Cancelar</button>
+        <button onclick="executeConfirmedDelete()" class="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md transition">Excluir Definitivamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: APAGAR DADOS (2 PASSOS - SENHA 1111) -->
+  <div id="modal-apagar-dados" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-4">
+      <!-- Passo 1 -->
+      <div id="wipe-step-1" class="space-y-4">
+        <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+          <span>🗑️</span> Passo 1 de 2: Selecionar Dados para Apagar
+        </h3>
+        <p class="text-xs text-slate-400">Marque as categorias que deseja excluir permanentemente:</p>
+        <div class="space-y-2 text-xs">
+          <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-dark-850 cursor-pointer">
+            <input type="checkbox" id="wipe-check-orders" class="wipe-data-check accent-rose-500" checked>
+            <span class="font-semibold">Pedidos de Venda</span>
+          </label>
+          <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-dark-850 cursor-pointer">
+            <input type="checkbox" id="wipe-check-products" class="wipe-data-check accent-rose-500" checked>
+            <span class="font-semibold">Catálogo de Produtos</span>
+          </label>
+          <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-dark-850 cursor-pointer">
+            <input type="checkbox" id="wipe-check-clients" class="wipe-data-check accent-rose-500" checked>
+            <span class="font-semibold">Clientes Cadastrados</span>
+          </label>
+          <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-dark-850 cursor-pointer">
+            <input type="checkbox" id="wipe-check-production" class="wipe-data-check accent-rose-500" checked>
+            <span class="font-semibold">Fila de Produção FDM</span>
+          </label>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="closeModal('modal-apagar-dados')" class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-dark-800">Cancelar</button>
+          <button onclick="advanceWipeDataStep()" class="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl">Avançar para o Passo 2 →</button>
+        </div>
+      </div>
+
+      <!-- Passo 2 -->
+      <div id="wipe-step-2" class="space-y-4 hidden">
+        <h3 class="font-bold text-base text-rose-600 flex items-center gap-2">
+          <span>🔒</span> Passo 2 de 2: Autenticação com Senha Mestra
+        </h3>
+        <p class="text-xs text-slate-400">Digite a senha mestra <strong>1111</strong> para autorizar a exclusão:</p>
+        <div id="wipe-summary-list" class="p-3 bg-rose-50/60 dark:bg-rose-950/30 rounded-xl text-xs text-rose-800 dark:text-rose-300"></div>
+        <input type="password" id="wipe-password-input" placeholder="Digite a senha (1111)" class="w-full px-3 py-2 text-center text-sm font-bold bg-slate-50 dark:bg-dark-800 border rounded-xl tracking-widest">
+        <p id="wipe-password-error" class="text-xs text-rose-500 font-bold hidden text-center">Senha incorreta! Digite 1111.</p>
+        <div class="flex justify-between pt-2">
+          <button onclick="backWipeDataStep()" class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-dark-800">← Voltar</button>
+          <button onclick="executeWipeData()" class="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl">Autorizar Exclusão</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RESET DE FÁBRICA (2 PASSOS - SENHA 1111) -->
+  <div id="modal-reset-factory" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-4">
+      <div id="factory-step-1" class="space-y-4">
+        <h3 class="font-bold text-base text-slate-900 dark:text-white">Restaurar Padrões de Fábrica (1/2)</h3>
+        <p class="text-xs text-slate-400">Esta ação apagará todos os pedidos, produtos, configurações e histórico, restaurando os dados iniciais do ERP.</p>
+        <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-dark-850 cursor-pointer text-xs">
+          <input type="checkbox" id="factory-agree-check" onchange="document.getElementById('btn-factory-next').disabled = !this.checked" class="accent-brand-500">
+          <span>Estou ciente e desejo prosseguir</span>
+        </label>
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="closeModal('modal-reset-factory')" class="px-4 py-2 text-xs rounded-xl bg-slate-100 dark:bg-dark-800">Cancelar</button>
+          <button id="btn-factory-next" disabled onclick="advanceFactoryResetStep()" class="px-4 py-2 text-xs font-bold text-white bg-brand-500 disabled:opacity-40 rounded-xl">Avançar →</button>
+        </div>
+      </div>
+
+      <div id="factory-step-2" class="space-y-4 hidden">
+        <h3 class="font-bold text-base text-rose-600">Autenticação com Senha Mestra (2/2)</h3>
+        <p class="text-xs text-slate-400">Digite a senha <strong>1111</strong> para restaurar:</p>
+        <input type="password" id="factory-password-input" placeholder="1111" class="w-full px-3 py-2 text-center text-sm font-bold bg-slate-50 dark:bg-dark-800 border rounded-xl tracking-widest">
+        <p id="factory-password-error" class="text-xs text-rose-500 font-bold hidden text-center">Senha incorreta!</p>
+        <div class="flex justify-between pt-2">
+          <button onclick="backFactoryResetStep()" class="px-4 py-2 text-xs rounded-xl bg-slate-100 dark:bg-dark-800">← Voltar</button>
+          <button onclick="executeFactoryReset()" class="px-4 py-2 text-xs font-bold text-white bg-rose-600 rounded-xl">Confirmar Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVO PEDIDO -->
+  <div id="modal-novo-pedido" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="p-5 border-b border-slate-100 dark:border-dark-800 flex justify-between items-center bg-slate-50 dark:bg-dark-850">
+        <div>
+          <h3 class="font-bold text-slate-900 dark:text-white text-base">🛒 Criar Novo Pedido (Multi-Itens & Tamanhos PP a GG)</h3>
+          <p class="text-xs text-slate-400">Adicione múltiplos produtos e calcule taxas automaticamente</p>
+        </div>
+        <button onclick="closeModal('modal-novo-pedido')" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <form id="form-novo-pedido" onsubmit="handleCreateOrder(event)" class="p-5 space-y-4 overflow-y-auto flex-1 text-xs sm:text-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold mb-1">Canal</label>
+            <select id="modal-order-channel" onchange="recalculateOrderSummary()" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl">
+              <option value="Shopee">Shopee (xap3d)</option>
+              <option value="Mercado Livre">Mercado Livre</option>
+              <option value="Venda Direta">Venda Direta</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Cliente</label>
+            <input type="text" id="modal-order-customer" required placeholder="Ex: Rodrigo Zanella" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Prazo de Envio</label>
+            <input type="date" id="modal-order-deadline" required class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl">
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-dark-850 border space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+            <div class="sm:col-span-5">
+              <label class="block text-[11px] font-semibold mb-1">Produto</label>
+              <select id="modal-order-product-select" onchange="syncSelectedProductPrice()" class="w-full px-2.5 py-2 text-xs bg-white dark:bg-dark-800 border rounded-xl"></select>
+            </div>
+            <div class="sm:col-span-3">
+              <label class="block text-[11px] font-semibold mb-1">Tamanho</label>
+              <select id="modal-order-size-select" class="w-full px-2.5 py-2 text-xs bg-white dark:bg-dark-800 border rounded-xl"></select>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-[11px] font-semibold mb-1">Cor</label>
+              <select id="modal-order-color-select" class="w-full px-2.5 py-2 text-xs bg-white dark:bg-dark-800 border rounded-xl">
+                <option value="Preto">Preto</option>
+                <option value="Branco">Branco</option>
+                <option value="Cinza">Cinza</option>
+                <option value="Vermelho">Vermelho</option>
+              </select>
+            </div>
+            <div class="sm:col-span-2">
+              <button type="button" onclick="addProductItemToOrder()" class="w-full py-2 px-2 text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition">+ Adicionar</button>
+            </div>
+          </div>
+          <div class="border rounded-xl overflow-hidden bg-white dark:bg-dark-900">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 dark:bg-dark-850 text-slate-500 uppercase text-[10px]">
+                <tr><th class="py-2 px-3">Item</th><th class="py-2 px-2">Tam / Cor</th><th class="py-2 px-2 text-center">Qtd</th><th class="py-2 px-3 text-right">Subtotal</th><th class="py-2 px-2 text-center">Ação</th></tr>
+              </thead>
+              <tbody id="modal-order-items-table-body" class="divide-y divide-slate-100 dark:divide-dark-800"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 p-3 rounded-2xl bg-slate-100 dark:bg-dark-800 text-xs">
+          <div><span>Valor Total:</span><input type="number" step="0.01" id="modal-order-total-value" required oninput="recalculateOrderSummary()" class="mt-1 w-full px-2 py-1 font-bold text-sm bg-white dark:bg-dark-900 border rounded-xl"></div>
+          <div><span>Taxas Estimadas:</span><span id="modal-order-summary-fees" class="mt-1 block font-bold text-rose-500 py-1">- R$ 0,00</span></div>
+          <div><span>Lucro Estimado:</span><span id="modal-order-summary-profit" class="mt-1 block font-black text-emerald-600 py-1">R$ 0,00</span></div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('modal-novo-pedido')" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-dark-800">Cancelar</button>
+          <button type="submit" class="px-5 py-2 font-bold text-white bg-brand-500 hover:bg-brand-600 rounded-xl shadow-md">Salvar Pedido</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVO PRODUTO COM VARIAÇÕES PP A GG -->
+  <div id="modal-novo-produto" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 rounded-3xl w-full max-w-3xl shadow-2xl p-5 space-y-4 max-h-[92vh] flex flex-col">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-slate-900 dark:text-white text-base">Cadastrar Novo Produto (PP a GG & Preços Diferenciados)</h3>
+        <button onclick="closeModal('modal-novo-produto')" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <form id="form-novo-produto" onsubmit="handleCreateProduct(event)" class="space-y-4 text-xs overflow-y-auto flex-1 pr-1">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div><label class="block font-semibold mb-1">SKU</label><input type="text" id="modal-newprod-sku" required placeholder="XP-MOD-01" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl uppercase"></div>
+          <div><label class="block font-semibold mb-1">Categoria</label>
+            <select id="modal-newprod-cat" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl">
+              <option value="Organização">Organização</option>
+              <option value="Suportes">Suportes Tech</option>
+              <option value="Miniaturas">Miniaturas</option>
+              <option value="Decoração">Decoração</option>
+            </select>
+          </div>
+          <div><label class="block font-semibold mb-1">Nome</label><input type="text" id="modal-newprod-name" required placeholder="Organizador Modular" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-dark-850 border space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase text-brand-600">Tamanhos & Preços por Variação</span>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-slate-400">Preço Base (M):</span>
+              <input type="number" step="0.5" id="quick-base-price" value="49.90" class="w-20 px-2 py-1 bg-white dark:bg-dark-800 border rounded-lg text-xs font-bold">
+              <button type="button" onclick="autoSuggestAllSizePrices()" class="px-2.5 py-1 text-[11px] font-bold text-brand-600 bg-brand-50 rounded-lg">⚡ Auto-calcular</button>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2 pt-1 pb-2">
+            <label class="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-dark-800 border rounded-lg cursor-pointer"><input type="checkbox" name="prod-sizes" value="PP" onchange="renderProductSizeVariantsTable()"> PP</label>
+            <label class="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-dark-800 border rounded-lg cursor-pointer"><input type="checkbox" name="prod-sizes" value="P" onchange="renderProductSizeVariantsTable()" checked> P</label>
+            <label class="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-dark-800 border rounded-lg cursor-pointer"><input type="checkbox" name="prod-sizes" value="M" onchange="renderProductSizeVariantsTable()" checked> M</label>
+            <label class="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-dark-800 border rounded-lg cursor-pointer"><input type="checkbox" name="prod-sizes" value="G" onchange="renderProductSizeVariantsTable()" checked> G</label>
+            <label class="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-dark-800 border rounded-lg cursor-pointer"><input type="checkbox" name="prod-sizes" value="GG" onchange="renderProductSizeVariantsTable()"> GG</label>
+            <label class="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-dark-800 border rounded-lg cursor-pointer"><input type="checkbox" name="prod-sizes" value="Único" onchange="renderProductSizeVariantsTable()"> Único</label>
+          </div>
+          <div class="border rounded-xl overflow-hidden bg-white dark:bg-dark-900">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 dark:bg-dark-850 text-slate-500 uppercase text-[10px]">
+                <tr><th class="py-2 px-3">Tamanho</th><th class="py-2 px-2">Preço (R$)</th><th class="py-2 px-2">Custo (R$)</th><th class="py-2 px-2 text-center">Peso (g)</th><th class="py-2 px-2 text-center">Tempo (h)</th><th class="py-2 px-2 text-center">Estoque</th></tr>
+              </thead>
+              <tbody id="modal-size-variants-table-body" class="divide-y divide-slate-100 dark:divide-dark-800"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('modal-novo-produto')" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-dark-800">Cancelar</button>
+          <button type="submit" class="px-5 py-2 font-bold text-white bg-brand-500 hover:bg-brand-600 rounded-xl">Salvar Produto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVA EMBALAGEM / INSUMO -->
+  <div id="modal-nova-embalagem" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 rounded-3xl w-full max-w-md shadow-2xl p-5 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-base text-slate-900 dark:text-white">Cadastrar Insumo / Embalagem</h3>
+        <button onclick="closeModal('modal-nova-embalagem')" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <form id="form-nova-embalagem" onsubmit="handleCreatePackaging(event)" class="space-y-3 text-xs">
+        <div><label class="block font-semibold mb-1">Descrição</label><input type="text" id="modal-pkg-name" required placeholder="Ex: Caixa Papelão G (25x20x15)" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block font-semibold mb-1">Categoria</label>
+            <select id="modal-pkg-type" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl">
+              <option value="Caixa">Caixa</option>
+              <option value="Envelope">Envelope</option>
+              <option value="Proteção">Proteção / Bolha</option>
+              <option value="Identificação">Etiqueta</option>
+              <option value="Fechamento">Fita</option>
+            </select>
+          </div>
+          <div><label class="block font-semibold mb-1">Custo Unitário (R$)</label><input type="number" step="0.05" id="modal-pkg-cost" value="2.50" required class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block font-semibold mb-1">Quantidade Inicial</label><input type="number" id="modal-pkg-stock" value="50" required class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></div>
+          <div><label class="block font-semibold mb-1">Estoque Mínimo</label><input type="number" id="modal-pkg-min" value="15" required class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('modal-nova-embalagem')" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-dark-800">Cancelar</button>
+          <button type="submit" class="px-4 py-2 font-bold text-white bg-brand-500 rounded-xl">Adicionar Insumo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVA IMPRESSORA -->
+  <div id="modal-nova-impressora" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 rounded-3xl w-full max-w-md shadow-2xl p-5 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-base text-slate-900 dark:text-white">Cadastrar Nova Impressora FDM</h3>
+        <button onclick="closeModal('modal-nova-impressora')" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <form id="form-nova-impressora" onsubmit="handleCreatePrinter(event)" class="space-y-3 text-xs">
+        <div><label class="block font-semibold mb-1">Nome / Identificador</label><input type="text" id="modal-newprint-name" required placeholder="Bambu Lab P1S #02" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></div>
+        <div><label class="block font-semibold mb-1">Modelo</label><input type="text" id="modal-newprint-model" required placeholder="CoreXY 256x256" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block font-semibold mb-1">Custo / Hora (R$)</label><input type="number" step="0.05" id="modal-newprint-cost" value="1.65" required class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></div>
+          <div><label class="block font-semibold mb-1">Status Inicial</label>
+            <select id="modal-newprint-status" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl">
+              <option value="DISPONIVEL">🟢 Disponível</option>
+              <option value="IMPRIMINDO">🔵 Imprimindo</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('modal-nova-impressora')" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-dark-800">Cancelar</button>
+          <button type="submit" class="px-4 py-2 font-bold text-white bg-brand-500 rounded-xl">Salvar Impressora</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVA PRODUÇÃO / ORDEM FDM -->
+  <div id="modal-nova-producao" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 rounded-3xl w-full max-w-md shadow-2xl p-5 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-base text-slate-900 dark:text-white">Iniciar Ordem de Produção FDM</h3>
+        <button onclick="closeModal('modal-nova-producao')" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <form id="form-nova-producao" onsubmit="handleCreateProduction(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold mb-1">Produto</label>
+          <select id="modal-prod-product" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block font-semibold mb-1">Filamento</label>
+            <select id="modal-prod-material" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl">
+              <option value="PLA Preto">PLA Preto</option>
+              <option value="PLA Branco">PLA Branco</option>
+              <option value="PLA Cinza">PLA Cinza</option>
+              <option value="PLA Vermelho">PLA Vermelho</option>
+            </select>
+          </div>
+          <div><label class="block font-semibold mb-1">Peso (g)</label><input type="number" id="modal-prod-grams" value="85" required class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block font-semibold mb-1">Tempo (h)</label><input type="number" step="0.1" id="modal-prod-hours" value="3.3" required class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></div>
+          <div><label class="block font-semibold mb-1">Impressora</label><select id="modal-prod-printer" class="w-full px-3 py-2 bg-slate-50 dark:bg-dark-800 border rounded-xl"></select></div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('modal-nova-producao')" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-dark-800">Cancelar</button>
+          <button type="submit" class="px-4 py-2 font-bold text-white bg-brand-500 rounded-xl">Inserir na Fila</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Box -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <div id="toast-icon" class="text-brand-500 font-bold text-sm">✓</div>
+    <span id="toast-message" class="text-xs font-semibold">Operação realizada com sucesso.</span>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       XAP3D ERP — ENGINE COM SUPORTE COMPLETO A EXCLUSÃO E RESET EM 2 PASSOS
+       ========================================================================== */
+    const STORAGE_KEY = 'xap3d_erp_state_v4';
+
+    // Global Modal & UI controllers
+    function openModal(modalId) {
+      const m = document.getElementById(modalId);
+      if (!m) return;
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+
+      if (modalId === 'modal-novo-pedido') {
+        orderItemsTemp = [];
+        renderOrderItemsTempTable();
+        syncSelectedProductPrice();
+        recalculateOrderSummary();
+      } else if (modalId === 'modal-novo-produto') {
+        renderProductSizeVariantsTable();
+      } else if (modalId === 'modal-nova-producao') {
+        updatePrinterSelects();
+      }
+    }
+
+    function closeModal(modalId) {
+      const m = document.getElementById(modalId);
+      if (!m) return;
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById(`tab-${tabId}`);
+      if (target) target.classList.add('active');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('text-brand-600', 'dark:text-brand-400', 'bg-brand-50', 'dark:bg-brand-950/40', 'font-semibold');
+        btn.classList.add('text-slate-600', 'dark:text-slate-300');
+      });
+      const activeBtn = document.getElementById(`nav-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600', 'dark:text-slate-300');
+        activeBtn.classList.add('text-brand-600', 'dark:text-brand-400', 'bg-brand-50', 'dark:bg-brand-950/40', 'font-semibold');
+      }
+
+      state.activeTab = tabId;
+      persistState();
+    }
+
+    function toggleMobileSidebar() {
+      const s = document.getElementById('sidebar');
+      const b = document.getElementById('sidebar-backdrop');
+      if (s && b) {
+        s.classList.toggle('-translate-x-full');
+        b.classList.toggle('hidden');
+      }
+    }
+
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      state.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      persistState();
+    }
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const text = document.getElementById('toast-message');
+      const icon = document.getElementById('toast-icon');
+      if (!toast || !text) return;
+      text.innerText = msg;
+      icon.innerText = isError ? '⚠️' : '✓';
+      icon.className = isError ? 'text-rose-500 font-bold' : 'text-brand-500 font-bold';
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.add('translate-y-24', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3000);
+    }
+
+    // Default ERP initial state
+    const defaultState = {
+      theme: 'light',
+      activeTab: 'dashboard',
+      printers: [
+        { id: 'p1', name: 'Bambu Lab P1S #01', model: 'CoreXY Fechada', status: 'IMPRIMINDO', currentJob: 'Suporte Headset', progress: 68, timeLeft: '1h 12m', filamentInUse: 'PLA Preto', nozzleTemp: '220°C', bedTemp: '55°C', totalHours: 1420, hourlyCost: 1.65, maintenanceHours: 80 },
+        { id: 'p2', name: 'Creality Ender 3 S1 Pro #02', model: 'Direct Drive', status: 'IMPRIMINDO', currentJob: 'Organizador M', progress: 35, timeLeft: '3h 40m', filamentInUse: 'PLA Cinza', nozzleTemp: '205°C', bedTemp: '60°C', totalHours: 2150, hourlyCost: 1.30, maintenanceHours: 120 },
+        { id: 'p3', name: 'Bambu Lab A1 Mini #03', model: 'Bed Slinger Rápida', status: 'DISPONIVEL', currentJob: 'Aguardando fila', progress: 0, timeLeft: '—', filamentInUse: 'PLA Branco', nozzleTemp: '24°C', bedTemp: '24°C', totalHours: 640, hourlyCost: 1.45, maintenanceHours: 45 },
+        { id: 'p4', name: 'Creality K1 #04', model: 'CoreXY Alta Velocidade', status: 'DISPONIVEL', currentJob: 'Disponível na Fila', progress: 0, timeLeft: '—', filamentInUse: 'Nenhum', nozzleTemp: '24°C', bedTemp: '24°C', totalHours: 980, hourlyCost: 1.80, maintenanceHours: 15 }
+      ],
+      products: [
+        {
+          id: 'prod-1', sku: 'XP-ORG-01', name: 'Organizador de Pilhas Modular', category: 'Organização', weightGrams: 85, printTimeHours: 3.3, baseCost: 14.80, priceShopee: 44.90, stockQty: 8, minStock: 3,
+          sizeVariants: [
+            { size: 'P', price: 34.90, cost: 11.50, weightGrams: 65, printTimeHours: 2.5, stock: 3 },
+            { size: 'M', price: 44.90, cost: 14.80, weightGrams: 85, printTimeHours: 3.3, stock: 5 },
+            { size: 'G', price: 54.90, cost: 18.20, weightGrams: 115, printTimeHours: 4.5, stock: 0 }
+          ]
+        },
+        {
+          id: 'prod-2', sku: 'XP-SUP-02', name: 'Suporte Articulado Gamer Headset', category: 'Suportes', weightGrams: 110, printTimeHours: 4.25, baseCost: 18.20, priceShopee: 49.90, stockQty: 4, minStock: 2,
+          sizeVariants: [
+            { size: 'M', price: 49.90, cost: 18.20, weightGrams: 110, printTimeHours: 4.25, stock: 4 }
+          ]
+        },
+        {
+          id: 'prod-3', sku: 'XP-MIN-03', name: 'Miniatura Gandalf o Cinzento', category: 'Miniaturas', weightGrams: 95, printTimeHours: 6.5, baseCost: 22.50, priceShopee: 69.90, stockQty: 0, minStock: 3,
+          sizeVariants: [
+            { size: 'P', price: 54.00, cost: 18.00, weightGrams: 70, printTimeHours: 4.8, stock: 0 },
+            { size: 'M', price: 69.90, cost: 22.50, weightGrams: 95, printTimeHours: 6.5, stock: 0 },
+            { size: 'G', price: 89.00, cost: 31.00, weightGrams: 140, printTimeHours: 9.0, stock: 0 }
+          ]
+        }
+      ],
+      orders: [
+        {
+          id: 'XP-7821', channel: 'Shopee', customer: 'Mariana Duarte', city: 'Chapecó, SC',
+          items: [{ sku: 'XP-ORG-01', name: 'Organizador de Pilhas', size: 'M', color: 'Preto', qty: 2, unitPrice: 44.90, unitCost: 14.80, weightGrams: 85, hours: 3.3 }],
+          totalPrice: 89.80, marketplaceFee: 21.96, productionCost: 29.60, netProfit: 38.24, deadline: 'Hoje, 17:00', status: 'EMBALAGEM', stockDeducted: true
+        },
+        {
+          id: 'XP-7822', channel: 'Mercado Livre', customer: 'Rodrigo Siqueira', city: 'Curitiba, PR',
+          items: [{ sku: 'XP-SUP-02', name: 'Suporte Gamer', size: 'M', color: 'Cinza', qty: 1, unitPrice: 49.90, unitCost: 18.20, weightGrams: 110, hours: 4.25 }],
+          totalPrice: 49.90, marketplaceFee: 11.98, productionCost: 18.20, netProfit: 19.72, deadline: 'Amanhã', status: 'EM_PRODUCAO', stockDeducted: false
+        }
+      ],
+      productionQueue: [
+        { id: 'ORD-01', product: 'Suporte Headset Gamer', material: 'PLA Preto', grams: 110, estTime: '4.2h', printer: 'Bambu Lab P1S #01', priority: 'ALTA', status: 'IMPRIMINDO' },
+        { id: 'ORD-02', product: 'Organizador de Pilhas M', material: 'PLA Cinza', grams: 85, estTime: '3.3h', printer: 'Creality Ender 3 S1 Pro #02', priority: 'NORMAL', status: 'IMPRIMINDO' }
+      ],
+      filaments: [
+        { id: 'fil-1', brand: 'Voolt3D', material: 'PLA', color: 'Preto', initialGrams: 1000, currentGrams: 380, costKg: 89.90, minGrams: 500, dailyConsumption: 122 },
+        { id: 'fil-2', brand: 'PrintaLot', material: 'PLA', color: 'Branco', initialGrams: 1000, currentGrams: 850, costKg: 95.00, minGrams: 300, dailyConsumption: 45 },
+        { id: 'fil-3', brand: 'Esun', material: 'PLA+', color: 'Cinza', initialGrams: 1000, currentGrams: 620, costKg: 110.00, minGrams: 300, dailyConsumption: 65 },
+        { id: 'fil-4', brand: '3D Fila', material: 'PLA', color: 'Vermelho', initialGrams: 1000, currentGrams: 180, costKg: 92.00, minGrams: 300, dailyConsumption: 120 }
+      ],
+      packaging: [
+        { id: 'pkg-1', name: 'Caixa Papelão P (16x11x6)', type: 'Caixa', stock: 45, unitCost: 1.80, minStock: 15, dailyUse: 2.5, coverageDays: 18 },
+        { id: 'pkg-2', name: 'Caixa Papelão M (20x20x15)', type: 'Caixa', stock: 22, unitCost: 2.90, minStock: 10, dailyUse: 1.5, coverageDays: 15 },
+        { id: 'pkg-3', name: 'Plástico Bolha 50cm (metros)', type: 'Proteção', stock: 85, unitCost: 0.45, minStock: 20, dailyUse: 4.0, coverageDays: 21 },
+        { id: 'pkg-4', name: 'Etiquetas Térmicas 100x150', type: 'Identificação', stock: 210, unitCost: 0.12, minStock: 50, dailyUse: 7.0, coverageDays: 30 }
+      ],
+      marketplaces: [
+        { id: 'shopee', name: 'Shopee (xap3d)', commissionPct: 20.0, fixedFee: 4.0, color: '#f97316' },
+        { id: 'ml', name: 'Mercado Livre', commissionPct: 12.0, fixedFee: 6.0, color: '#eab308' },
+        { id: 'direta', name: 'Venda Direta', commissionPct: 2.5, fixedFee: 0.0, color: '#10b981' }
+      ],
+      clients: [
+        { name: 'Mariana Duarte', city: 'Chapecó, SC', channel: 'Shopee', totalBought: 320.00 },
+        { name: 'Rodrigo Siqueira', city: 'Curitiba, PR', channel: 'Mercado Livre', totalBought: 149.70 }
+      ],
+      failures: []
+    };
+
+    function loadPersistedState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) return Object.assign({}, defaultState, JSON.parse(saved));
+      } catch (e) {
+        console.warn('Erro ao carregar do storage:', e);
+      }
+      return defaultState;
+    }
+
+    const state = loadPersistedState();
+
+    function persistState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.warn('Erro ao persistir:', e);
+      }
+    }
+
+    // Modal Confirmation Dialog Controller
+    let deleteActionCallback = null;
+
+    function openDeleteConfirmDialog(title, subtitle, description, onConfirm) {
+      document.getElementById('confirm-delete-title').innerText = title;
+      document.getElementById('confirm-delete-subtitle').innerText = subtitle;
+      document.getElementById('confirm-delete-description').innerHTML = description;
+      deleteActionCallback = onConfirm;
+      openModal('modal-confirm-delete');
+    }
+
+    function executeConfirmedDelete() {
+      if (typeof deleteActionCallback === 'function') {
+        deleteActionCallback();
+        deleteActionCallback = null;
+      }
+      closeModal('modal-confirm-delete');
+    }
+
+    // EXCLUIR PRODUTO
+    function confirmDeleteProduct(prodId) {
+      const p = state.products.find(item => item.id === prodId || item.sku === prodId);
+      if (!p) return;
+      openDeleteConfirmDialog(
+        'Excluir Produto',
+        `SKU: ${p.sku}`,
+        `Tem certeza de que deseja excluir o produto <strong>${p.name}</strong>? Se houver pedidos vinculados a ele, o histórico será preservado.`,
+        () => {
+          state.products = state.products.filter(item => item.id !== p.id);
+          persistState();
+          renderProductsCatalog();
+          renderStockSubsections();
+          populateProductSelectModal();
+          showToast(`Produto "${p.name}" excluído com sucesso.`);
+        }
+      );
+    }
+
+    // EXCLUIR PEDIDO (COM ESTORNO AUTOMÁTICO SE BAIXADO)
+    function confirmDeleteOrder(orderId) {
+      const order = state.orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const stockNote = order.stockDeducted
+        ? '<div class="mt-2 text-amber-600 font-bold">📦 O estoque das peças e embalagens deste pedido será estornado automaticamente.</div>'
+        : '';
+
+      openDeleteConfirmDialog(
+        'Excluir Pedido',
+        `Pedido #${order.id}`,
+        `Deseja excluir permanentemente o pedido de <strong>${order.customer}</strong> no valor de <strong>R$ ${order.totalPrice.toFixed(2)}</strong>?${stockNote}`,
+        () => {
+          if (order.stockDeducted) {
+            restoreOrderStockAndPackaging(order);
+          }
+          state.orders = state.orders.filter(o => o.id !== orderId);
+          persistState();
+          renderOrdersTable();
+          renderStockSubsections();
+          renderProductsCatalog();
+          showToast(`Pedido #${orderId} excluído com sucesso.`);
+        }
+      );
+    }
+
+    // EXCLUIR ORDEM DA FILA DE PRODUÇÃO
+    function confirmDeleteQueueItem(jobId) {
+      const job = state.productionQueue.find(j => j.id === jobId);
+      if (!job) return;
+      openDeleteConfirmDialog(
+        'Remover da Fila FDM',
+        `Ordem: ${job.id}`,
+        `Deseja remover a ordem de produção <strong>${job.product}</strong> da fila de impressão?`,
+        () => {
+          state.productionQueue = state.productionQueue.filter(j => j.id !== jobId);
+          persistState();
+          renderProductionQueue();
+          showToast(`Ordem ${jobId} removida da fila.`);
+        }
+      );
+    }
+
+    // Baixa automática de estoque
+    function deductOrderStockAndPackaging(order) {
+      if (!order || order.stockDeducted) return;
+      (order.items || []).forEach(item => {
+        const prod = state.products.find(p => p.sku === item.sku || p.name === item.name);
+        if (prod) {
+          prod.stockQty = Math.max(0, (prod.stockQty || 0) - item.qty);
+          if (prod.sizeVariants) {
+            const v = prod.sizeVariants.find(sv => sv.size === item.size);
+            if (v) v.stock = Math.max(0, (v.stock || 0) - item.qty);
+          }
+        }
+      });
+      // Baixa de 1 caixa e 1 etiqueta
+      if (state.packaging) {
+        const box = state.packaging.find(p => p.type === 'Caixa');
+        if (box) box.stock = Math.max(0, box.stock - 1);
+        const label = state.packaging.find(p => p.type === 'Identificação');
+        if (label) label.stock = Math.max(0, label.stock - 1);
+      }
+      order.stockDeducted = true;
+    }
+
+    // Estorno seguro de estoque
+    function restoreOrderStockAndPackaging(order) {
+      if (!order || !order.stockDeducted) return;
+      (order.items || []).forEach(item => {
+        const prod = state.products.find(p => p.sku === item.sku || p.name === item.name);
+        if (prod) {
+          prod.stockQty = (prod.stockQty || 0) + item.qty;
+          if (prod.sizeVariants) {
+            const v = prod.sizeVariants.find(sv => sv.size === item.size);
+            if (v) v.stock = (v.stock || 0) + item.qty;
+          }
+        }
+      });
+      if (state.packaging) {
+        const box = state.packaging.find(p => p.type === 'Caixa');
+        if (box) box.stock = (box.stock || 0) + 1;
+        const label = state.packaging.find(p => p.type === 'Identificação');
+        if (label) label.stock = (label.stock || 0) + 1;
+      }
+      order.stockDeducted = false;
+    }
+
+    function renderOrdersTable() {
+      const tbody = document.getElementById('orders-table-body');
+      if (!tbody) return;
+
+      const search = (document.getElementById('order-search')?.value || '').toLowerCase();
+      const statusFilter = document.getElementById('order-filter-status')?.value || 'ALL';
+
+      const filtered = state.orders.filter(o => {
+        const matchSearch = o.customer.toLowerCase().includes(search) || o.id.toLowerCase().includes(search);
+        const matchStatus = statusFilter === 'ALL' || o.status === statusFilter;
+        return matchSearch && matchStatus;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-400">Nenhum pedido encontrado.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(order => {
+        const cycle = ['NOVO', 'EM_PRODUCAO', 'ACABAMENTO', 'EMBALAGEM', 'ENVIADO'];
+        const currentIdx = cycle.indexOf(order.status);
+        const items = order.items || [];
+
+        return `
+          <tr class="hover:bg-slate-50 dark:hover:bg-dark-850/60 transition">
+            <td class="py-3 px-4">
+              <span class="font-bold text-slate-900 dark:text-white">${order.id}</span>
+              <div class="text-[10px] text-brand-600 dark:text-brand-400 font-semibold">${order.channel}</div>
+            </td>
+            <td class="py-3 px-4">
+              <p class="font-semibold text-slate-800 dark:text-slate-200">${order.customer}</p>
+              <p class="text-[11px] text-slate-400">${order.city || 'Chapecó, SC'}</p>
+            </td>
+            <td class="py-3 px-4">
+              ${items.map(it => `
+                <div class="py-0.5">
+                  <span class="font-medium">${it.qty}x ${it.name}</span>
+                  <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-dark-800 text-brand-600 ml-1">${it.size || 'M'}</span>
+                </div>
+              `).join('')}
+            </td>
+            <td class="py-3 px-4">
+              <p class="font-bold text-slate-900 dark:text-white">R$ ${order.totalPrice.toFixed(2)}</p>
+              <p class="text-[10.5px] text-rose-500 font-medium">Taxa: -R$ ${order.marketplaceFee.toFixed(2)}</p>
+            </td>
+            <td class="py-3 px-4 font-bold text-emerald-600 dark:text-emerald-400">R$ ${order.netProfit.toFixed(2)}</td>
+            <td class="py-3 px-4 text-xs text-slate-500">${order.deadline}</td>
+            <td class="py-3 px-4">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${order.status === 'ENVIADO' ? 'bg-emerald-100 text-emerald-700' : 'bg-brand-50 text-brand-600'}">
+                ${order.status}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right">
+              <div class="flex items-center justify-end gap-1.5">
+                <button onclick="advanceOrderStatus('${order.id}')" title="Avançar status" class="px-2 py-1 text-xs font-semibold rounded-lg bg-brand-50 hover:bg-brand-500 hover:text-white text-brand-600 transition">
+                  Avançar →
+                </button>
+                <button onclick="confirmDeleteOrder('${order.id}')" title="Excluir pedido" class="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      const badge = document.getElementById('nav-badge-orders');
+      if (badge) badge.innerText = state.orders.length;
+    }
+
+    function advanceOrderStatus(orderId) {
+      const order = state.orders.find(o => o.id === orderId);
+      if (!order) return;
+      const cycle = ['NOVO', 'EM_PRODUCAO', 'ACABAMENTO', 'EMBALAGEM', 'ENVIADO'];
+      const idx = cycle.indexOf(order.status);
+      if (idx < cycle.length - 1) {
+        order.status = cycle[idx + 1];
+        if (['EMBALAGEM', 'ENVIADO'].includes(order.status)) {
+          deductOrderStockAndPackaging(order);
+        }
+        persistState();
+        renderOrdersTable();
+        renderStockSubsections();
+        showToast(`Pedido #${order.id} avançou para: ${order.status}`);
+      }
+    }
+
+    function renderProductsCatalog() {
+      const grid = document.getElementById('products-catalog-grid');
+      if (!grid) return;
+
+      const search = (document.getElementById('product-search')?.value || '').toLowerCase();
+      const cat = document.getElementById('product-filter-cat')?.value || 'ALL';
+
+      const filtered = state.products.filter(p => {
+        const matchSearch = p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search);
+        const matchCat = cat === 'ALL' || p.category === cat;
+        return matchSearch && matchCat;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div class="col-span-3 text-center py-8 text-slate-400">Nenhum produto cadastrado.</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(prod => `
+        <div class="p-5 rounded-2xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-sm flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-start justify-between">
+              <span class="text-[10px] font-bold uppercase text-slate-400">${prod.sku} • ${prod.category}</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${prod.stockQty > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}">
+                ${prod.stockQty} em estoque
+              </span>
+            </div>
+            <h4 class="font-bold text-base text-slate-900 dark:text-white mt-1">${prod.name}</h4>
+            <div class="mt-2.5 pt-2 border-t space-y-1">
+              <span class="text-[10.5px] font-bold text-slate-400 block">Preços por Tamanho:</span>
+              <div class="flex flex-wrap gap-1.5">
+                ${(prod.sizeVariants || []).map(v => `
+                  <span class="px-2 py-0.5 rounded-md bg-slate-50 dark:bg-dark-850 border text-[11px] font-semibold">
+                    ${v.size}: <strong>R$ ${v.price.toFixed(2)}</strong>
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+          <div class="pt-3 border-t flex items-center justify-between">
+            <span class="text-base font-black text-brand-500">R$ ${prod.priceShopee.toFixed(2)}</span>
+            <div class="flex items-center gap-2">
+              <button onclick="confirmDeleteProduct('${prod.id}')" title="Excluir Produto" class="p-1.5 text-slate-400 hover:text-rose-500 rounded-xl hover:bg-rose-50 transition">
+                🗑️
+              </button>
+              <button onclick="openModal('modal-nova-producao')" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition">
+                + Produzir
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderStockSubsections() {
+      const finishedBody = document.getElementById('finished-stock-body');
+      if (finishedBody) {
+        finishedBody.innerHTML = state.products.map(p => `
+          <tr class="hover:bg-slate-50 dark:hover:bg-dark-850 transition">
+            <td class="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
+              ${p.name}
+              <span class="text-[10px] text-slate-400 block">${p.sku}</span>
+            </td>
+            <td class="py-2.5 px-3 text-center">
+              <input type="number" min="0" value="${p.stockQty}" onchange="updateProductStockDirect('${p.id}', this.value)" class="w-16 px-2 py-1 text-center font-bold bg-white dark:bg-dark-800 border rounded-lg">
+            </td>
+            <td class="py-2.5 px-3 text-center text-slate-400">${p.minStock || 3} un</td>
+            <td class="py-2.5 px-3 text-center">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${p.stockQty <= (p.minStock || 3) ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}">
+                ${p.stockQty <= (p.minStock || 3) ? 'Baixo' : 'OK'}
+              </span>
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <button onclick="confirmDeleteProduct('${p.id}')" title="Excluir produto do estoque" class="p-1 text-slate-400 hover:text-rose-500 transition">
+                🗑️
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      const pkgBody = document.getElementById('packaging-stock-body');
+      if (pkgBody && state.packaging) {
+        pkgBody.innerHTML = state.packaging.map(pkg => `
+          <tr class="hover:bg-slate-50 dark:hover:bg-dark-850 transition">
+            <td class="py-2.5 px-3 font-medium text-slate-800 dark:text-slate-200">${pkg.name}</td>
+            <td class="py-2.5 px-3 text-center">
+              <input type="number" min="0" value="${pkg.stock}" onchange="updatePackagingStockDirect('${pkg.id}', this.value)" class="w-16 px-2 py-1 text-center font-bold bg-white dark:bg-dark-800 border rounded-lg">
+            </td>
+            <td class="py-2.5 px-3 text-right">R$ ${pkg.unitCost.toFixed(2)}</td>
+            <td class="py-2.5 px-3 text-center font-bold">${pkg.coverageDays || 15}d</td>
+            <td class="py-2.5 px-3 text-center">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${pkg.stock <= pkg.minStock ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}">
+                ${pkg.stock <= pkg.minStock ? 'Baixo' : 'OK'}
+              </span>
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <button onclick="deletePackaging('${pkg.id}')" title="Excluir insumo" class="p-1 text-slate-400 hover:text-rose-500 transition">🗑️</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function updateProductStockDirect(prodId, val) {
+      const p = state.products.find(item => item.id === prodId);
+      if (p) {
+        p.stockQty = parseInt(val, 10) || 0;
+        persistState();
+        renderProductsCatalog();
+      }
+    }
+
+    function updatePackagingStockDirect(pkgId, val) {
+      const pkg = state.packaging.find(item => item.id === pkgId);
+      if (pkg) {
+        pkg.stock = parseInt(val, 10) || 0;
+        persistState();
+      }
+    }
+
+    function deletePackaging(pkgId) {
+      state.packaging = state.packaging.filter(p => p.id !== pkgId);
+      persistState();
+      renderStockSubsections();
+      showToast('Insumo removido.');
+    }
+
+    function renderProductionQueue() {
+      const tbody = document.getElementById('production-queue-body');
+      if (!tbody) return;
+      tbody.innerHTML = state.productionQueue.map(item => `
+        <tr class="hover:bg-slate-50 dark:hover:bg-dark-850">
+          <td class="py-3 px-4 font-bold">${item.product}</td>
+          <td class="py-3 px-4">${item.material} (${item.grams}g)</td>
+          <td class="py-3 px-4">${item.estTime}</td>
+          <td class="py-3 px-4">${item.printer}</td>
+          <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100">${item.priority}</span></td>
+          <td class="py-3 px-4 font-bold text-emerald-500">${item.status}</td>
+          <td class="py-3 px-4 text-right">
+            <button onclick="confirmDeleteQueueItem('${item.id}')" title="Cancelar Ordem" class="p-1 text-slate-400 hover:text-rose-500 transition">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderPrintersFleet() {
+      const liveCards = document.getElementById('fleet-live-cards');
+      const detailedGrid = document.getElementById('printers-detailed-grid');
+      const dots = document.getElementById('sidebar-printer-dots');
+
+      if (liveCards) {
+        liveCards.innerHTML = state.printers.map(p => `
+          <div class="p-4 rounded-2xl bg-slate-50 dark:bg-dark-850 border space-y-2">
+            <div class="flex justify-between items-center">
+              <h5 class="font-bold text-xs truncate">${p.name}</h5>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${p.status === 'IMPRIMINDO' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'}">${p.status}</span>
+            </div>
+            <p class="text-xs text-slate-400">${p.currentJob}</p>
+            <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+              <div class="bg-brand-500 h-1.5" style="width: ${p.progress}%"></div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      if (detailedGrid) {
+        detailedGrid.innerHTML = state.printers.map(p => `
+          <div class="p-5 rounded-2xl bg-white dark:bg-dark-900 border space-y-3">
+            <div class="flex justify-between items-start">
+              <div><h4 class="font-bold">${p.name}</h4><p class="text-xs text-slate-400">${p.model} • R$ ${p.hourlyCost.toFixed(2)}/h</p></div>
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full ${p.status === 'IMPRIMINDO' ? 'bg-emerald-100 text-emerald-600' : 'bg-cyan-100 text-cyan-600'}">${p.status}</span>
+            </div>
+            <p class="text-xs text-slate-500">Total Horas: <strong>${p.totalHours}h</strong> | Próx. Manutenção: em <strong>${p.maintenanceHours}h</strong></p>
+          </div>
+        `).join('');
+      }
+
+      if (dots) {
+        dots.innerHTML = state.printers.map(p => `
+          <div class="w-2.5 h-2 rounded-full ${p.status === 'IMPRIMINDO' ? 'bg-emerald-500' : 'bg-cyan-500'} flex-shrink-0"></div>
+        `).join('');
+      }
+    }
+
+    function renderFilaments() {
+      const grid = document.getElementById('filaments-grid');
+      if (!grid) return;
+      grid.innerHTML = state.filaments.map(f => `
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-dark-850 border space-y-2">
+          <div class="flex justify-between items-start">
+            <div><h5 class="font-bold text-xs">${f.material} ${f.color}</h5><p class="text-[10px] text-slate-400">${f.brand}</p></div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${f.currentGrams <= f.minGrams ? 'bg-rose-500 text-white' : 'bg-emerald-100 text-emerald-600'}">${f.currentGrams}g</span>
+          </div>
+          <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+            <div class="bg-brand-500 h-1.5" style="width: ${Math.round((f.currentGrams / f.initialGrams) * 100)}%"></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    let orderItemsTemp = [];
+
+    const defaultScaleMap = {
+      'PP': { priceFactor: 0.70, costFactor: 0.65, weightFactor: 0.60, timeFactor: 0.65 },
+      'P': { priceFactor: 0.85, costFactor: 0.82, weightFactor: 0.80, timeFactor: 0.82 },
+      'M': { priceFactor: 1.00, costFactor: 1.00, weightFactor: 1.00, timeFactor: 1.00 },
+      'G': { priceFactor: 1.25, costFactor: 1.25, weightFactor: 1.30, timeFactor: 1.28 },
+      'GG': { priceFactor: 1.55, costFactor: 1.55, weightFactor: 1.65, timeFactor: 1.60 },
+      'Único': { priceFactor: 1.00, costFactor: 1.00, weightFactor: 1.00, timeFactor: 1.00 }
+    };
+
+    function renderProductSizeVariantsTable() {
+      const tbody = document.getElementById('modal-size-variants-table-body');
+      if (!tbody) return;
+      const checked = Array.from(document.querySelectorAll('input[name="prod-sizes"]:checked')).map(cb => cb.value);
+      const basePrice = parseFloat(document.getElementById('quick-base-price')?.value || 49.90);
+
+      tbody.innerHTML = checked.map(size => {
+        const factor = defaultScaleMap[size] || defaultScaleMap['M'];
+        return `
+          <tr data-size="${size}">
+            <td class="py-2 px-3 font-bold text-brand-600">${size}</td>
+            <td class="py-2 px-2"><input type="number" step="0.10" class="var-price w-full px-2 py-1 border rounded" value="${(basePrice * factor.priceFactor).toFixed(2)}"></td>
+            <td class="py-2 px-2"><input type="number" step="0.10" class="var-cost w-full px-2 py-1 border rounded" value="${((basePrice * 0.35) * factor.costFactor).toFixed(2)}"></td>
+            <td class="py-2 px-2 text-center"><input type="number" class="var-weight w-full px-2 py-1 border rounded text-center" value="${Math.round(85 * factor.weightFactor)}"></td>
+            <td class="py-2 px-2 text-center"><input type="number" step="0.1" class="var-time w-full px-2 py-1 border rounded text-center" value="${(3.3 * factor.timeFactor).toFixed(1)}"></td>
+            <td class="py-2 px-2 text-center"><input type="number" min="0" class="var-stock w-16 px-2 py-1 border rounded text-center" value="2"></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function autoSuggestAllSizePrices() {
+      renderProductSizeVariantsTable();
+      showToast('Preços calculados para todos os tamanhos marcados!');
+    }
+
+    function syncSelectedProductPrice() {
+      const pSelect = document.getElementById('modal-order-product-select');
+      const sSelect = document.getElementById('modal-order-size-select');
+      if (!pSelect || !sSelect) return;
+      const prod = state.products.find(p => p.sku === pSelect.value);
+      if (!prod) return;
+
+      sSelect.innerHTML = (prod.sizeVariants || []).map(v => `
+        <option value="${v.size}">${v.size} — R$ ${v.price.toFixed(2)}</option>
+      `).join('');
+      recalculateOrderSummary();
+    }
+
+    function addProductItemToOrder() {
+      const pSelect = document.getElementById('modal-order-product-select');
+      const prod = state.products.find(p => p.sku === pSelect.value);
+      if (!prod) return;
+
+      const size = document.getElementById('modal-order-size-select').value;
+      const color = document.getElementById('modal-order-color-select').value;
+      const variant = (prod.sizeVariants || []).find(v => v.size === size) || { price: prod.priceShopee, cost: prod.baseCost };
+
+      orderItemsTemp.push({
+        id: Date.now() + Math.random(),
+        sku: prod.sku,
+        name: prod.name,
+        size: size,
+        color: color,
+        qty: 1,
+        unitPrice: variant.price,
+        unitCost: variant.cost,
+        subtotal: variant.price
+      });
+
+      renderOrderItemsTempTable();
+      recalculateOrderSummary();
+    }
+
+    function renderOrderItemsTempTable() {
+      const tbody = document.getElementById('modal-order-items-table-body');
+      if (!tbody) return;
+      if (orderItemsTemp.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-slate-400">Nenhum item adicionado ainda.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = orderItemsTemp.map(item => `
+        <tr>
+          <td class="py-2 px-3 font-semibold">${item.name}</td>
+          <td class="py-2 px-2 text-[11px]">${item.size} • ${item.color}</td>
+          <td class="py-2 px-2 text-center font-bold">${item.qty}</td>
+          <td class="py-2 px-3 text-right font-bold">R$ ${item.subtotal.toFixed(2)}</td>
+          <td class="py-2 px-2 text-center">
+            <button type="button" onclick="orderItemsTemp = orderItemsTemp.filter(i => i.id !== ${item.id}); renderOrderItemsTempTable(); recalculateOrderSummary();" class="text-rose-500 font-bold">✕</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function recalculateOrderSummary() {
+      const total = orderItemsTemp.reduce((acc, it) => acc + it.subtotal, 0);
+      const valInput = document.getElementById('modal-order-total-value');
+      if (valInput && document.activeElement !== valInput) valInput.value = total > 0 ? total.toFixed(2) : '';
+
+      const totalVal = parseFloat(valInput?.value || total || 0);
+      const fee = totalVal * 0.20 + 4.0;
+      const cost = orderItemsTemp.reduce((acc, it) => acc + (it.unitCost * it.qty), 0) || (totalVal * 0.35);
+      const profit = totalVal - fee - cost;
+
+      document.getElementById('modal-order-summary-fees').innerText = `- R$ ${fee.toFixed(2)}`;
+      document.getElementById('modal-order-summary-profit').innerText = `R$ ${profit.toFixed(2)}`;
+    }
+
+    function handleCreateOrder(e) {
+      e.preventDefault();
+      const channel = document.getElementById('modal-order-channel').value;
+      const customer = document.getElementById('modal-order-customer').value;
+      const deadline = document.getElementById('modal-order-deadline').value || 'Amanhã';
+      const totalVal = parseFloat(document.getElementById('modal-order-total-value').value || 0);
+
+      if (orderItemsTemp.length === 0) {
+        showToast('Adicione pelo menos um produto.', true);
+        return;
+      }
+
+      const newId = 'XP-' + (7820 + state.orders.length + 1);
+      const fee = totalVal * 0.20 + 4.0;
+      const cost = orderItemsTemp.reduce((acc, it) => acc + (it.unitCost * it.qty), 0);
+
+      state.orders.unshift({
+        id: newId, channel, customer, city: 'Chapecó, SC',
+        items: [...orderItemsTemp],
+        totalPrice: totalVal, marketplaceFee: fee, productionCost: cost, netProfit: totalVal - fee - cost,
+        deadline, status: 'NOVO', stockDeducted: false
+      });
+
+      persistState();
+      closeModal('modal-novo-pedido');
+      document.getElementById('form-novo-pedido').reset();
+      renderOrdersTable();
+      showToast(`Pedido #${newId} criado com sucesso!`);
+    }
+
+    function handleCreateProduct(e) {
+      e.preventDefault();
+      const sku = document.getElementById('modal-newprod-sku').value.trim();
+      const cat = document.getElementById('modal-newprod-cat').value;
+      const name = document.getElementById('modal-newprod-name').value.trim();
+
+      const rows = document.querySelectorAll('#modal-size-variants-table-body tr[data-size]');
+      if (rows.length === 0) {
+        showToast('Selecione pelo menos um tamanho.', true);
+        return;
+      }
+
+      const variants = [];
+      let totalStock = 0;
+      rows.forEach(row => {
+        const size = row.getAttribute('data-size');
+        const price = parseFloat(row.querySelector('.var-price')?.value || 0);
+        const cost = parseFloat(row.querySelector('.var-cost')?.value || 0);
+        const weightGrams = parseInt(row.querySelector('.var-weight')?.value || 85, 10);
+        const printTimeHours = parseFloat(row.querySelector('.var-time')?.value || 3.3);
+        const stock = parseInt(row.querySelector('.var-stock')?.value || 0, 10);
+        totalStock += stock;
+        variants.push({ size, price, cost, weightGrams, printTimeHours, stock });
+      });
+
+      const rep = variants[0];
+      state.products.unshift({
+        id: 'prod-' + Date.now(), sku, name, category: cat,
+        weightGrams: rep.weightGrams, printTimeHours: rep.printTimeHours, baseCost: rep.cost, priceShopee: rep.price,
+        stockQty: totalStock, minStock: 3, sizeVariants: variants
+      });
+
+      persistState();
+      closeModal('modal-novo-produto');
+      document.getElementById('form-novo-produto').reset();
+      renderProductsCatalog();
+      renderStockSubsections();
+      populateProductSelectModal();
+      showToast(`Produto "${name}" cadastrado com sucesso!`);
+    }
+
+    function handleCreatePackaging(e) {
+      e.preventDefault();
+      const name = document.getElementById('modal-pkg-name').value.trim();
+      const type = document.getElementById('modal-pkg-type').value;
+      const cost = parseFloat(document.getElementById('modal-pkg-cost').value || 1.80);
+      const stock = parseInt(document.getElementById('modal-pkg-stock').value || 50, 10);
+      const minStock = parseInt(document.getElementById('modal-pkg-min').value || 15, 10);
+
+      state.packaging.unshift({
+        id: 'pkg-' + Date.now(), name, type, stock, minStock, unitCost: cost, coverageDays: 20
+      });
+
+      persistState();
+      closeModal('modal-nova-embalagem');
+      document.getElementById('form-nova-embalagem').reset();
+      renderStockSubsections();
+      showToast(`Insumo "${name}" adicionado ao estoque!`);
+    }
+
+    function handleCreatePrinter(e) {
+      e.preventDefault();
+      const name = document.getElementById('modal-newprint-name').value.trim();
+      const model = document.getElementById('modal-newprint-model').value.trim();
+      const cost = parseFloat(document.getElementById('modal-newprint-cost').value || 1.50);
+      const status = document.getElementById('modal-newprint-status').value;
+
+      state.printers.push({
+        id: 'p_' + Date.now(), name, model, status, currentJob: 'Disponível na Fila',
+        progress: 0, timeLeft: '—', filamentInUse: 'Nenhum', nozzleTemp: '24°C', bedTemp: '24°C',
+        totalHours: 0, hourlyCost: cost, maintenanceHours: 150
+      });
+
+      persistState();
+      closeModal('modal-nova-impressora');
+      document.getElementById('form-nova-impressora').reset();
+      renderPrintersFleet();
+      updatePrinterSelects();
+      showToast(`Impressora "${name}" cadastrada!`);
+    }
+
+    function handleCreateProduction(e) {
+      e.preventDefault();
+      const sku = document.getElementById('modal-prod-product').value;
+      const prod = state.products.find(p => p.sku === sku);
+      const mat = document.getElementById('modal-prod-material').value;
+      const grams = parseInt(document.getElementById('modal-prod-grams').value || 85, 10);
+      const hours = document.getElementById('modal-prod-hours').value;
+      const printer = document.getElementById('modal-prod-printer').value;
+
+      state.productionQueue.unshift({
+        id: 'ORD-' + Math.floor(Math.random() * 900 + 100),
+        product: prod ? prod.name : 'Peça FDM',
+        material: mat, grams, estTime: `${hours}h`, printer, priority: 'NORMAL', status: 'AGUARDANDO'
+      });
+
+      persistState();
+      closeModal('modal-nova-producao');
+      renderProductionQueue();
+      showToast('Ordem inserida na fila FDM!');
+    }
+
+    function populateProductSelectModal() {
+      const select = document.getElementById('modal-order-product-select');
+      const prodSelect = document.getElementById('modal-prod-product');
+      if (select && state.products) {
+        select.innerHTML = state.products.map(p => `<option value="${p.sku}">${p.name} (${p.sku})</option>`).join('');
+      }
+      if (prodSelect && state.products) {
+        prodSelect.innerHTML = state.products.map(p => `<option value="${p.sku}">${p.name}</option>`).join('');
+      }
+      syncSelectedProductPrice();
+    }
+
+    function updatePrinterSelects() {
+      const s = document.getElementById('modal-prod-printer');
+      if (s && state.printers) {
+        s.innerHTML = state.printers.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+      }
+    }
+
+    function runPricingCalculation() {
+      const peso = parseFloat(document.getElementById('calc-peso')?.value || 85);
+      const tempo = parseFloat(document.getElementById('calc-tempo')?.value || 3.3);
+      const custoKg = parseFloat(document.getElementById('calc-custo-kg')?.value || 89.90);
+      const maoObra = parseFloat(document.getElementById('calc-mao-obra')?.value || 3.50);
+      const emb = parseFloat(document.getElementById('calc-embalagem')?.value || 2.80);
+
+      const fil = (peso / 1000) * custoKg;
+      const ene = tempo * 0.12 * 0.85;
+      const dep = tempo * 1.50;
+      const total = fil + ene + dep + maoObra + emb;
+
+      document.getElementById('breakdown-filamento').innerText = `R$ ${fil.toFixed(2)}`;
+      document.getElementById('breakdown-energia').innerText = `R$ ${ene.toFixed(2)}`;
+      document.getElementById('breakdown-deprec').innerText = `R$ ${dep.toFixed(2)}`;
+      document.getElementById('breakdown-obra').innerText = `R$ ${maoObra.toFixed(2)}`;
+      document.getElementById('breakdown-embalagem').innerText = `R$ ${emb.toFixed(2)}`;
+      document.getElementById('calc-custo-total').innerText = `R$ ${total.toFixed(2)}`;
+    }
+
+    function openWipeDataModal() {
+      document.getElementById('wipe-step-1')?.classList.remove('hidden');
+      document.getElementById('wipe-step-2')?.classList.add('hidden');
+      document.getElementById('wipe-password-error')?.classList.add('hidden');
+      openModal('modal-apagar-dados');
+    }
+
+    function advanceWipeDataStep() {
+      const selected = [];
+      if (document.getElementById('wipe-check-orders')?.checked) selected.push(`Pedidos (${state.orders.length})`);
+      if (document.getElementById('wipe-check-products')?.checked) selected.push(`Produtos (${state.products.length})`);
+      if (document.getElementById('wipe-check-clients')?.checked) selected.push(`Clientes (${state.clients.length})`);
+      if (document.getElementById('wipe-check-production')?.checked) selected.push(`Fila (${state.productionQueue.length})`);
+
+      if (selected.length === 0) {
+        showToast('Selecione ao menos um grupo de dados.', true);
+        return;
+      }
+
+      document.getElementById('wipe-summary-list').innerHTML = selected.join(' • ');
+      document.getElementById('wipe-step-1')?.classList.add('hidden');
+      document.getElementById('wipe-step-2')?.classList.remove('hidden');
+    }
+
+    function backWipeDataStep() {
+      document.getElementById('wipe-step-2')?.classList.add('hidden');
+      document.getElementById('wipe-step-1')?.classList.remove('hidden');
+    }
+
+    function executeWipeData() {
+      const pwd = document.getElementById('wipe-password-input')?.value.trim();
+      if (pwd !== '1111') {
+        document.getElementById('wipe-password-error')?.classList.remove('hidden');
+        showToast('Senha incorreta! Digite 1111.', true);
+        return;
+      }
+
+      if (document.getElementById('wipe-check-orders')?.checked) state.orders = [];
+      if (document.getElementById('wipe-check-products')?.checked) state.products = [];
+      if (document.getElementById('wipe-check-clients')?.checked) state.clients = [];
+      if (document.getElementById('wipe-check-production')?.checked) state.productionQueue = [];
+
+      persistState();
+      closeModal('modal-apagar-dados');
+      renderOrdersTable();
+      renderProductsCatalog();
+      renderStockSubsections();
+      renderProductionQueue();
+      populateProductSelectModal();
+      showToast('Dados selecionados foram apagados com sucesso!');
+    }
+
+    function openFactoryResetModal() {
+      document.getElementById('factory-step-1')?.classList.remove('hidden');
+      document.getElementById('factory-step-2')?.classList.add('hidden');
+      openModal('modal-reset-factory');
+    }
+
+    function advanceFactoryResetStep() {
+      document.getElementById('factory-step-1')?.classList.add('hidden');
+      document.getElementById('factory-step-2')?.classList.remove('hidden');
+    }
+
+    function backFactoryResetStep() {
+      document.getElementById('factory-step-2')?.classList.add('hidden');
+      document.getElementById('factory-step-1')?.classList.remove('hidden');
+    }
+
+    function executeFactoryReset() {
+      const pwd = document.getElementById('factory-password-input')?.value.trim();
+      if (pwd !== '1111') {
+        document.getElementById('factory-password-error')?.classList.remove('hidden');
+        showToast('Senha incorreta! Digite 1111.', true);
+        return;
+      }
+
+      localStorage.removeItem(STORAGE_KEY);
+      closeModal('modal-reset-factory');
+      showToast('Padrões de fábrica restaurados! Recarregando...');
+      setTimeout(() => location.reload(), 600);
+    }
+
+    function exportFullBackup() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute("href", dataStr);
+      a.setAttribute("download", `xap3d_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast('Backup JSON exportado com sucesso!');
+    }
+
+    function importFullBackup(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const imported = JSON.parse(evt.target.result);
+          Object.assign(state, imported);
+          persistState();
+          showToast('Backup restaurado com sucesso! Atualizando...');
+          setTimeout(() => location.reload(), 600);
+        } catch (err) {
+          showToast('Arquivo de backup inválido.', true);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function exportTableToCSV(type) {
+      let csv = "data:text/csv;charset=utf-8,";
+      if (type === 'orders') {
+        csv += "ID;Cliente;Canal;Total;Lucro;Status\n";
+        state.orders.forEach(o => { csv += `"${o.id}";"${o.customer}";"${o.channel}";${o.totalPrice};${o.netProfit};"${o.status}"\n`; });
+      } else {
+        csv += "SKU;Produto;Categoria;Preco;Estoque\n";
+        state.products.forEach(p => { csv += `"${p.sku}";"${p.name}";"${p.category}";${p.priceShopee};${p.stockQty}\n`; });
+      }
+      const uri = encodeURI(csv);
+      const link = document.createElement("a");
+      link.setAttribute("href", uri);
+      link.setAttribute("download", `xap3d_${type}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function initCharts() {
+      const fCanvas = document.getElementById('chart-dashboard-finance');
+      const cCanvas = document.getElementById('chart-dashboard-channels');
+
+      if (fCanvas && window.Chart) {
+        new Chart(fCanvas.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+            datasets: [
+              { label: 'Faturamento (R$)', data: [1120, 1450, 980, 1680, 1890, 1420, 1300], borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.1)', fill: true, tension: 0.3 },
+              { label: 'Lucro Real (R$)', data: [490, 630, 420, 740, 830, 620, 580], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 }
+            ]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
+
+      if (cCanvas && window.Chart) {
+        new Chart(cCanvas.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Shopee', 'Mercado Livre', 'Venda Direta'],
+            datasets: [{ data: [65, 25, 10], backgroundColor: ['#f97316', '#eab308', '#10b981'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+        });
+      }
+    }
+
+    // App Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      if (state.theme === 'dark') document.documentElement.classList.add('dark');
+      renderOrdersTable();
+      renderProductsCatalog();
+      renderStockSubsections();
+      renderProductionQueue();
+      renderPrintersFleet();
+      renderFilaments();
+      populateProductSelectModal();
+      updatePrinterSelects();
+      runPricingCalculation();
+      initCharts();
+      if (state.activeTab && state.activeTab !== 'dashboard') switchTab(state.activeTab);
+    });
+  </script>
+</body>
+</html>
